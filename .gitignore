@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Environment variables
+.env
+.env.local
+
+# Data files
+backend/data/raw/*
+backend/data/analyzed/*
+backend/data/precomputed/*
+!backend/data/raw/.gitkeep
+!backend/data/analyzed/.gitkeep
+!backend/data/precomputed/.gitkeep
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Frontend build
+frontend/dist/
+frontend/build/
+
+# Playwright
+playwright/.cache/
+.playwright/
+
+# Logs
+*.log
+logs/
