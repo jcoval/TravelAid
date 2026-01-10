@@ -94,45 +94,42 @@ def precompute_city(city: str, limit: int = 50):
     yelp_restaurants = []
     tripadvisor_restaurants = []
 
-    # Note: Playwright browser installation might have failed earlier
-    # For now, we'll create a simplified version that uses mock data
-    # In production, uncomment the scraping code below
+    # Scraping enabled - will collect real reviews from multiple platforms
+    logger.info("SCRAPING ENABLED - Collecting real restaurant data")
 
-    logger.warning("SCRAPING DISABLED - Using mock data for testing")
-    logger.warning("To enable scraping: Install Playwright browsers with 'playwright install chromium'")
+    try:
+        logger.info("\nScraping Google Maps...")
+        with GoogleMapsScraper(headless=True) as scraper:
+            google_restaurants = scraper.search_restaurants(city, limit)
+            for restaurant in google_restaurants[:min(limit, 10)]:
+                scraper.scrape_restaurant_details(restaurant)
+    except Exception as e:
+        logger.error(f"Error scraping Google: {e}")
 
-    # TODO: Uncomment when Playwright is working
-    # try:
-    #     logger.info("\nScraping Google Maps...")
-    #     with GoogleMapsScraper(headless=True) as scraper:
-    #         google_restaurants = scraper.search_restaurants(city, limit)
-    #         for restaurant in google_restaurants[:10]:  # Limit to 10 for testing
-    #             scraper.scrape_restaurant_details(restaurant)
-    # except Exception as e:
-    #     logger.error(f"Error scraping Google: {e}")
-    #
-    # try:
-    #     logger.info("\nScraping Yelp...")
-    #     with YelpScraper(headless=True) as scraper:
-    #         yelp_restaurants = scraper.search_restaurants(city, limit)
-    #         for restaurant in yelp_restaurants[:10]:
-    #             scraper.scrape_restaurant_details(restaurant)
-    # except Exception as e:
-    #     logger.error(f"Error scraping Yelp: {e}")
-    #
-    # try:
-    #     logger.info("\nScraping TripAdvisor...")
-    #     with TripAdvisorScraper(headless=True) as scraper:
-    #         tripadvisor_restaurants = scraper.search_restaurants(city, limit)
-    #         for restaurant in tripadvisor_restaurants[:10]:
-    #             scraper.scrape_restaurant_details(restaurant)
-    # except Exception as e:
-    #     logger.error(f"Error scraping TripAdvisor: {e}")
+    try:
+        logger.info("\nScraping Yelp...")
+        with YelpScraper(headless=True) as scraper:
+            yelp_restaurants = scraper.search_restaurants(city, limit)
+            for restaurant in yelp_restaurants[:min(limit, 10)]:
+                scraper.scrape_restaurant_details(restaurant)
+    except Exception as e:
+        logger.error(f"Error scraping Yelp: {e}")
 
-    # Create mock data for testing
-    logger.info("Creating mock restaurant data for testing...")
-    mock_restaurant = create_mock_restaurant()
-    all_restaurants = [mock_restaurant]
+    try:
+        logger.info("\nScraping TripAdvisor...")
+        with TripAdvisorScraper(headless=True) as scraper:
+            tripadvisor_restaurants = scraper.search_restaurants(city, limit)
+            for restaurant in tripadvisor_restaurants[:min(limit, 10)]:
+                scraper.scrape_restaurant_details(restaurant)
+    except Exception as e:
+        logger.error(f"Error scraping TripAdvisor: {e}")
+
+    # Merge restaurants from all sources
+    all_restaurants = merge_restaurants(
+        google_restaurants,
+        yelp_restaurants,
+        tripadvisor_restaurants
+    )
 
     # Save raw data
     raw_filename = os.path.join(RAW_DATA_DIR, f"{city.replace(' ', '_').replace(',', '').lower()}_raw.json")
@@ -171,11 +168,8 @@ def precompute_city(city: str, limit: int = 50):
 
     bias_detector = BiasDetector()
 
-    # Skip AI-based language detection for mock data
     for restaurant in all_restaurants:
-        # Only run cross-platform and timing bias detection (no AI)
-        bias_detector.detect_cross_platform_variance(restaurant)
-        bias_detector.detect_timing_anomalies(restaurant)
+        bias_detector.detect_bias(restaurant)
 
     # Save analyzed data
     analyzed_filename = os.path.join(
